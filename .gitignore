@@ -1,0 +1,74 @@
+# ============================================================
+#  ImageEnhanceWT — .gitignore
+# ============================================================
+
+# ---- Build outputs ----
+build/
+cmake-build-*/
+out/
+bin/
+obj/
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.exp
+
+# ---- CMake generated ----
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.cmake
+!CMakeLists.txt
+CTestTestfile.cmake
+Makefile
+compile_commands.json
+
+# ---- IDE / Editor ----
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ---- CUDA build artifacts ----
+*.o
+*.obj
+*.ptx
+*.cubin
+*.fatbin
+*.nvfatbin
+*.cu.o
+*.depend
+*.cudafe*
+*.gpu*
+*.hash
+*.i
+*.ii
+*.module_id
+*.reg_c
+*.sqlite3
+
+# ---- Image outputs from the program ----
+output_enhanced.jpg
+enhanced_*.jpg
+enhanced_*.png
+enhanced_*.jpeg
+
+# ---- Windows-specific (users on other OS don't need this) ----
+run.bat
+
+# ---- Python cache (reference implementation) ----
+__pycache__/
+*.py[cod]
+*.ipynb_checkpoints/
+
+# ---- Package / dependency ----
+*.zip
+*.tar.gz
+*.7z
+packages/
