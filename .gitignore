@@ -54,7 +54,6 @@ Thumbs.db
 *.sqlite3
 
 # ---- Image outputs from the program ----
-output_enhanced.jpg
 output_*.jpg
 enhanced_*.jpg
 enhanced_*.png
