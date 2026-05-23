@@ -174,7 +174,7 @@ int main(int argc, char* argv[]) {
     // ---- 步骤 1: 读取图像 ----
     cv::Mat bgr_image;
     {
-        ScopedTimer timer("1. 读取 JPEG");
+        ScopedTimer timer("1. Read JPEG");
         bgr_image = cv::imread(input_path, cv::IMREAD_COLOR);
         if (bgr_image.empty()) {
             std::cerr << "Error: Unable to read image " << input_path << std::endl;
