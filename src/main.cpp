@@ -45,9 +45,9 @@
 static void print_usage(const char* prog_name) {
     std::cout << "用法: " << prog_name
               << " <input.jpg> [output.jpg] [gain]\n\n"
-              << "  input.jpg   输入 JPEG 图像路径 (必需)\n"
-              << "  output.jpg  输出图像路径 (可选, 默认: enhanced_<input>)\n"
-              << "  gain        高频增强增益 (可选, 默认: 2.0, 范围: 0.5~10.0)\n"
+              << "  input.jpg   Input Path(required)\n"
+              << "  output.jpg  Output Path(optional, default: enhanced_<input>)\n"
+              << "  gain        High-frequency Enhancement Gain (optional, default: 2.0, range: 0.5~10.0)\n"
               << std::endl;
 }
 
@@ -86,7 +86,7 @@ static std::string ensure_image_extension(const std::string& path) {
         }
     }
     // 没有有效扩展名 → 追加 .jpg
-    std::cerr << "警告: 输出路径缺少有效的图像扩展名，已自动追加 .jpg" << std::endl;
+    std::cerr << "Warning: Output path lacks valid image extension, automatically appending .jpg" << std::endl;
     return path + ".jpg";
 }
 
@@ -99,7 +99,7 @@ public:
     ~ScopedTimer() {
         auto end = std::chrono::high_resolution_clock::now();
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start_).count();
-        std::cout << "  [" << label_ << "] 耗时: " << ms << " ms" << std::endl;
+        std::cout << "  [" << label_ << "] Time: " << ms << " ms" << std::endl;
     }
 private:
     const char* label_;
@@ -114,7 +114,7 @@ static cv::Mat ensure_even_size(const cv::Mat& src, int levels = 3) {
     int w = src.cols - (src.cols % divisor);
     int h = src.rows - (src.rows % divisor);
     if (w != src.cols || h != src.rows) {
-        std::cout << "  图像尺寸调整为 " << divisor << " 的倍数: "
+        std::cout << "  Image size adjusted to be a multiple of " << divisor << ": "
                   << src.cols << "×" << src.rows
                   << " → " << w << "×" << h << std::endl;
         return src(cv::Rect(0, 0, w, h)).clone();
@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
         if (argc == 3 && looks_like_number(arg2)) {
             gain = std::atof(arg2.c_str());
             output_path = "enhanced_" + input_path.substr(input_path.find_last_of("/\\") + 1);
-            std::cout << "提示: 检测到 '" << arg2 << "' 为增益值，已自动识别" << std::endl;
+            std::cout << "Notification: Detected '" << arg2 << "' as gain value, automatically recognized" << std::endl;
         } else {
             output_path = arg2;
             if (argc >= 4) {
@@ -160,16 +160,16 @@ int main(int argc, char* argv[]) {
 
     // 限制增益范围
     if (gain < 0.5f || gain > 10.0f) {
-        std::cerr << "错误: gain 必须在 [0.5, 10.0] 范围内" << std::endl;
+        std::cerr << "Error: gain must be in the range [0.5, 10.0]" << std::endl;
         return 1;
     }
 
     const int levels = 3;  // 小波分解层数（需在尺寸调整前定义）
 
-    std::cout << "\n  输入: " << input_path << "\n"
-              << "  输出: " << output_path << "\n"
-              << "  增益: " << gain << "\n"
-              << "  层数: " << levels << "\n\n";
+    std::cout << "\n  Input: " << input_path << "\n"
+              << "  Output: " << output_path << "\n"
+              << "  Gain: " << gain << "\n"
+              << "  Levels: " << levels << "\n\n";
 
     // ---- 步骤 1: 读取图像 ----
     cv::Mat bgr_image;
@@ -177,19 +177,19 @@ int main(int argc, char* argv[]) {
         ScopedTimer timer("1. 读取 JPEG");
         bgr_image = cv::imread(input_path, cv::IMREAD_COLOR);
         if (bgr_image.empty()) {
-            std::cerr << "错误: 无法读取图像 " << input_path << std::endl;
+            std::cerr << "Error: Unable to read image " << input_path << std::endl;
             return 1;
         }
         bgr_image = ensure_even_size(bgr_image, levels);
         bgr_image.convertTo(bgr_image, CV_32FC3, 1.0 / 255.0);  // [0,255] → [0,1]
-        std::cout << "     尺寸: " << bgr_image.cols << "×"
-                  << bgr_image.rows << " 通道: " << bgr_image.channels() << std::endl;
+        std::cout << "     Size: " << bgr_image.cols << "×"
+                  << bgr_image.rows << "  Channels: " << bgr_image.channels() << std::endl;
     }
 
     // ---- 步骤 2: BGR → YCrCb ----
     cv::Mat ycrcb_image;
     {
-        ScopedTimer timer("2. 色彩空间转换 BGR→YCrCb");
+        ScopedTimer timer("2. Color Space Conversion BGR→YCrCb");
         cv::cvtColor(bgr_image, ycrcb_image, cv::COLOR_BGR2YCrCb);
     }
 
@@ -207,7 +207,7 @@ int main(int argc, char* argv[]) {
     float *d_image = nullptr, *d_temp = nullptr, *d_work = nullptr;
     WaveletPyramid pyramid{};
     {
-        ScopedTimer timer("3. GPU 内存分配 + H2D 传输");
+        ScopedTimer timer("3. GPU Memory Allocation + H2D Transfer");
         CUDA_CHECK(cudaMalloc(&d_image, width * height * sizeof(float)));
         CUDA_CHECK(cudaMalloc(&d_temp,  width * height * sizeof(float)));
         CUDA_CHECK(cudaMalloc(&d_work,  width * height * sizeof(float)));
@@ -223,7 +223,7 @@ int main(int argc, char* argv[]) {
 
     // ---- 步骤 4: 多级小波分解 (GPU) ----
     {
-        ScopedTimer timer("4. GPU 3级 Haar DWT 分解");
+        ScopedTimer timer("4. GPU III Haar DWT Decomposition");
         haar_multilevel_decompose_gpu(d_image, &pyramid,
                                       width, height, levels,
                                       d_temp, d_work);
@@ -231,7 +231,7 @@ int main(int argc, char* argv[]) {
 
     // ---- 步骤 5: 小波系数增强 (GPU) ----
     {
-        ScopedTimer timer("5. GPU 小波系数增强");
+        ScopedTimer timer("5. GPU Wavelet Coefficient Enhancement");
 
         // 5a. 高频子带增强
         enhance_pyramid_gpu(&pyramid, gain);
@@ -242,13 +242,13 @@ int main(int argc, char* argv[]) {
         contrast_stretch_ll_gpu(pyramid.d_LL[levels - 1],
                                 final_ll_w, final_ll_h, 1.3f);
 
-        std::cout << "     增益: " << gain << "x, LL 对比度: 1.3x" << std::endl;
+        std::cout << "     Gain: " << gain << "x, LL Contrast: 1.3x" << std::endl;
     }
 
     // ---- 步骤 6: 小波重建 (GPU) ----
     float* d_result = nullptr;
     {
-        ScopedTimer timer("6. GPU 3级 Haar IDWT 重建");
+        ScopedTimer timer("6. GPU III Haar IDWT Reconstruction");
         CUDA_CHECK(cudaMalloc(&d_result, width * height * sizeof(float)));
         haar_multilevel_reconstruct_gpu(&pyramid, d_result,
                                         width, height, d_temp, d_work);
@@ -261,7 +261,7 @@ int main(int argc, char* argv[]) {
 
     // ---- 步骤 7: 后处理 & 保存 ----
     {
-        ScopedTimer timer("7. 后处理 & 保存");
+        ScopedTimer timer("7. Post-processing & Saving");
 
         // YCrCb → BGR
         cv::Mat enhanced_ycrcb, enhanced_bgr;
@@ -275,16 +275,16 @@ int main(int argc, char* argv[]) {
         cv::Mat output_8u;
         enhanced_bgr.convertTo(output_8u, CV_8UC3, 255.0);
         if (!cv::imwrite(output_path, output_8u)) {
-            std::cerr << "错误: 无法保存图像到 " << output_path << "\n"
-                      << "      请检查路径是否有效、磁盘空间是否充足、是否有写入权限" << std::endl;
+            std::cerr << "Error: Unable to save image to " << output_path << "\n"
+                      << "      Please check if the path is valid, disk space is sufficient, and write permissions are available" << std::endl;
             return 1;
         }
-        std::cout << "     已保存至: " << output_path << std::endl;
+        std::cout << "     Saved to: " << output_path << std::endl;
     }
 
     // ---- 清理 GPU 资源 ----
     {
-        ScopedTimer timer("8. GPU 资源释放");
+        ScopedTimer timer("8. GPU Resource Release");
         pyramid_free(&pyramid);
         cudaFree(d_image);
         cudaFree(d_temp);
