@@ -178,15 +178,21 @@ __global__ void haar_idwt_col_kernel(
 
     int col      = blockIdx.x * COL_TILE_W + threadIdx.x;
     int row_pair = blockIdx.y * COL_TILE_H + threadIdx.y;
+    int half_h   = height / 2;
 
-    if (col >= width || row_pair >= height / 2) return;
-
-    // 加载 s (上半区) 和 d (下半区)
-    int half_h = height / 2;
-    s_smem[threadIdx.y][threadIdx.x] = d_input[row_pair * width + col];
-    d_smem[threadIdx.y][threadIdx.x] = d_input[(half_h + row_pair) * width + col];
+    // ---- 第一步: 所有线程都参与加载共享内存 (避免 __syncthreads 死锁) ----
+    if (col < width && row_pair < half_h) {
+        s_smem[threadIdx.y][threadIdx.x] = d_input[row_pair * width + col];
+        d_smem[threadIdx.y][threadIdx.x] = d_input[(half_h + row_pair) * width + col];
+    } else {
+        s_smem[threadIdx.y][threadIdx.x] = 0.0f;
+        d_smem[threadIdx.y][threadIdx.x] = 0.0f;
+    }
 
     __syncthreads();
+
+    // ---- 第二步: 仅有效线程进行处理 ----
+    if (col >= width || row_pair >= half_h) return;
 
     // 逆 Haar Lifting
     float s = s_smem[threadIdx.y][threadIdx.x];

@@ -70,13 +70,15 @@ private:
 };
 
 // ================================================================
-// 确保图像尺寸为偶数（Haar DWT 要求偶数尺寸）
+// 确保图像尺寸能被 2^levels 整除（N级 Haar DWT 的硬性要求）
 // ================================================================
-static cv::Mat ensure_even_size(const cv::Mat& src) {
-    int w = src.cols - (src.cols % 2);
-    int h = src.rows - (src.rows % 2);
+static cv::Mat ensure_even_size(const cv::Mat& src, int levels = 3) {
+    int divisor = 1 << levels;  // 2^levels, 例如 3级 → 8
+    int w = src.cols - (src.cols % divisor);
+    int h = src.rows - (src.rows % divisor);
     if (w != src.cols || h != src.rows) {
-        std::cout << "  图像尺寸调整为偶数: " << src.cols << "×" << src.rows
+        std::cout << "  图像尺寸调整为 " << divisor << " 的倍数: "
+                  << src.cols << "×" << src.rows
                   << " → " << w << "×" << h << std::endl;
         return src(cv::Rect(0, 0, w, h)).clone();
     }
@@ -104,12 +106,15 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    const int levels = 3;  // 小波分解层数（需在尺寸调整前定义）
+
     std::cout << "\n╔══════════════════════════════════════════════╗\n"
               << "║  GPU 小波变换图像增强 (Haar Lifting + CUDA)  ║\n"
               << "╚══════════════════════════════════════════════╝\n\n"
               << "  输入: " << input_path << "\n"
               << "  输出: " << output_path << "\n"
-              << "  增益: " << gain << "\n\n";
+              << "  增益: " << gain << "\n"
+              << "  层数: " << levels << "\n\n";
 
     // ---- 步骤 1: 读取图像 ----
     cv::Mat bgr_image;
@@ -120,7 +125,7 @@ int main(int argc, char* argv[]) {
             std::cerr << "错误: 无法读取图像 " << input_path << std::endl;
             return 1;
         }
-        bgr_image = ensure_even_size(bgr_image);
+        bgr_image = ensure_even_size(bgr_image, levels);
         bgr_image.convertTo(bgr_image, CV_32FC3, 1.0 / 255.0);  // [0,255] → [0,1]
         std::cout << "     尺寸: " << bgr_image.cols << "×"
                   << bgr_image.rows << " 通道: " << bgr_image.channels() << std::endl;
@@ -142,7 +147,6 @@ int main(int argc, char* argv[]) {
 
     int width  = Y.cols;
     int height = Y.rows;
-    int levels = 3;  // 3级小波分解
 
     // ---- 步骤 3: 将 Y 通道上传到 GPU ----
     float *d_image = nullptr, *d_temp = nullptr, *d_work = nullptr;
