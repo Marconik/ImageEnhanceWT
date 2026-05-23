@@ -135,8 +135,8 @@ all decomposition levels:
 
 $$
 \tilde{w} = \begin{cases}
-G \cdot w, & |w| > \lambda \\[4pt]
-\alpha \cdot w, & \lambda/2 < |w| \leq \lambda \\[4pt]
+G \cdot w, & |w| > \lambda \\
+\alpha \cdot w, & \lambda/2 < |w| \leq \lambda \\
 0, & |w| \leq \lambda/2
 \end{cases}
 $$
@@ -426,5 +426,4 @@ Rebuild with the correct `CMAKE_CUDA_ARCHITECTURES`.
 ## License
 
 This project is provided for **educational and research purposes**.
-
 
