@@ -108,10 +108,7 @@ int main(int argc, char* argv[]) {
 
     const int levels = 3;  // 小波分解层数（需在尺寸调整前定义）
 
-    std::cout << "\n╔══════════════════════════════════════════════╗\n"
-              << "║  GPU 小波变换图像增强 (Haar Lifting + CUDA)  ║\n"
-              << "╚══════════════════════════════════════════════╝\n\n"
-              << "  输入: " << input_path << "\n"
+    std::cout << "\n  输入: " << input_path << "\n"
               << "  输出: " << output_path << "\n"
               << "  增益: " << gain << "\n"
               << "  层数: " << levels << "\n\n";
@@ -233,6 +230,5 @@ int main(int argc, char* argv[]) {
         cudaFree(d_result);
     }
 
-    std::cout << "\n✓ 增强完成! 结果已保存为: " << output_path << std::endl;
     return 0;
 }
