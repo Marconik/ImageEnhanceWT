@@ -11,8 +11,6 @@
  *   - 多级分解: 对 LL 子带递归做 DWT
  *   - 系数增强: |w| > T → w × G, |w| ≤ T → w × α （阈值+增益）
  *
- * 作者: ImageEnhanceWT Project
- * 日期: 2026-05
  */
 
 #ifndef WAVELET_CUDA_CUH_
