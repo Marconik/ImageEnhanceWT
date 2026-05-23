@@ -36,6 +36,8 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <algorithm>
+#include <cctype>
 
 // ================================================================
 // 工具函数: 打印使用说明
@@ -45,8 +47,47 @@ static void print_usage(const char* prog_name) {
               << " <input.jpg> [output.jpg] [gain]\n\n"
               << "  input.jpg   输入 JPEG 图像路径 (必需)\n"
               << "  output.jpg  输出图像路径 (可选, 默认: enhanced_<input>)\n"
-              << "  gain        高频增强增益 (可选, 默认: 2.0, 范围: 1.0~5.0)\n"
+              << "  gain        高频增强增益 (可选, 默认: 2.0, 范围: 0.5~10.0)\n"
               << std::endl;
+}
+
+// ================================================================
+// 工具函数: 检查字符串是否像数字（用于检测误传的增益值）
+// ================================================================
+static bool looks_like_number(const std::string& s) {
+    if (s.empty()) return false;
+    bool has_dot = false;
+    for (size_t i = 0; i < s.size(); ++i) {
+        if (s[i] == '.' || s[i] == ',') {
+            if (has_dot) return false;
+            has_dot = true;
+        } else if (!std::isdigit(static_cast<unsigned char>(s[i]))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ================================================================
+// 工具函数: 确保输出路径有有效的图像扩展名
+// ================================================================
+static std::string ensure_image_extension(const std::string& path) {
+    static const std::vector<std::string> valid_exts = {
+        ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp", ".jp2"
+    };
+    // 提取扩展名（转小写比较）
+    auto dot_pos = path.find_last_of('.');
+    if (dot_pos != std::string::npos) {
+        std::string ext = path.substr(dot_pos);
+        std::transform(ext.begin(), ext.end(), ext.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+        for (const auto& ve : valid_exts) {
+            if (ext == ve) return path;  // 有效扩展名，原样返回
+        }
+    }
+    // 没有有效扩展名 → 追加 .jpg
+    std::cerr << "警告: 输出路径缺少有效的图像扩展名，已自动追加 .jpg" << std::endl;
+    return path + ".jpg";
 }
 
 // ================================================================
@@ -92,9 +133,30 @@ int main(int argc, char* argv[]) {
     }
 
     std::string input_path  = argv[1];
-    std::string output_path = (argc >= 3) ? argv[2]
-        : ("enhanced_" + input_path.substr(input_path.find_last_of("/\\") + 1));
-    float gain = (argc >= 4) ? std::atof(argv[3]) : DEFAULT_GAIN;
+
+    // 智能解析: 如果只有2个参数且第2个像数字，说明用户想直接指定增益
+    std::string output_path;
+    float gain = DEFAULT_GAIN;
+
+    if (argc >= 3) {
+        std::string arg2 = argv[2];
+        // 检测第2个参数是否像数字（如 "2.0", "3"）→ 当作增益
+        if (argc == 3 && looks_like_number(arg2)) {
+            gain = std::atof(arg2.c_str());
+            output_path = "enhanced_" + input_path.substr(input_path.find_last_of("/\\") + 1);
+            std::cout << "提示: 检测到 '" << arg2 << "' 为增益值，已自动识别" << std::endl;
+        } else {
+            output_path = arg2;
+            if (argc >= 4) {
+                gain = std::atof(argv[3]);
+            }
+        }
+    } else {
+        output_path = "enhanced_" + input_path.substr(input_path.find_last_of("/\\") + 1);
+    }
+
+    // 确保输出路径有有效扩展名
+    output_path = ensure_image_extension(output_path);
 
     // 限制增益范围
     if (gain < 0.5f || gain > 10.0f) {
@@ -212,7 +274,11 @@ int main(int argc, char* argv[]) {
         // 转换回 [0, 255] 并保存
         cv::Mat output_8u;
         enhanced_bgr.convertTo(output_8u, CV_8UC3, 255.0);
-        cv::imwrite(output_path, output_8u);
+        if (!cv::imwrite(output_path, output_8u)) {
+            std::cerr << "错误: 无法保存图像到 " << output_path << "\n"
+                      << "      请检查路径是否有效、磁盘空间是否充足、是否有写入权限" << std::endl;
+            return 1;
+        }
         std::cout << "     已保存至: " << output_path << std::endl;
     }
 
