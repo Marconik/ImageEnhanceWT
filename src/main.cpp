@@ -22,10 +22,6 @@
  *     output.jpg  输出图像路径（可选，默认: enhanced_<input>）
  *     gain        高频增益（可选，默认: 2.0, 范围: 1.0~5.0）
  *
- * 编译:
- *   mkdir build && cd build
- *   cmake .. -DOpenCV_DIR=<path> -DCUDAToolkit_ROOT=<path>
- *   cmake --build . --config Release
  */
 
 #include <opencv2/core.hpp>
